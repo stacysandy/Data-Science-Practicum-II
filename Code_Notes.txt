@@ -1,0 +1,983 @@
+# BEGIN CODE OF JUPYTER NOTEBOOK
+
+# Load libraries
+import pandas as pd
+from pandas_summary import DataFrameSummary
+import numpy as np
+from pandas_profiling import ProfileReport
+
+#Load the CO K12 Data Set into a dataframe.
+COK12_df = pd.read_csv('Data/colorado-financial-public-data-pipeline-v-1-Run#1-export-source-lep-facts.csv', header=4)
+
+#Line 5 in csv is column header. Or rather line 4 begining at 0.
+
+# Ensure columns were retrieved
+COK12_df.columns
+
+# Look at dataset head
+COK12_df.head()
+
+# Look at dataset tail
+COK12_df.tail()
+
+# View dataframe shape (# of Rows and # of Columns)
+COK12_df.shape
+
+# Look at dataset information
+COK12_df.info()
+
+MARKDOWN:
+### Note, the columns with dtypes int64 are numbers, but....
+All the numbers within each column are numerical values that are tied to unique identifiers within the Chart of Accounts. Except for the column <b>amount_cents</b>.
+
+For example: school code 100 indicates elemetary schools. Therefore, it would never make sense to add these numerical values or numbers together within each column. The unique id of school code and adding to another unique id fund code, wouldn't make sense in this data set.
+
+#Let's confirm a count on null valuws in the entire data set.
+print(np.count_nonzero(COK12_df.isnull()))
+
+# Look at the data frame summary data
+COK12_dfs = DataFrameSummary(COK12_df)
+
+# Look at the column stats within the Data Frame Summary
+COK12_dfs.columns_stats
+
+MARKDOWN:
+#### Let's try to get an image of the Data Frame Summary column stats table above for comparison and contrast purposes.
+
+# Courtesy of Blane (2017) on converting a dataframe to image (see references for further insight)
+# Import required libraries
+import random
+import imgkit
+import pandas
+import os
+
+## Enter your css for the table.
+css = """
+<style type=\"text/css\">
+table {
+color: #333;
+font-family: Helvetica, Arial, sans-serif;
+width: 640px;
+border-collapse:
+collapse; 
+border-spacing: 0;
+}
+
+td, th {
+border: 1px solid transparent; /* No more visible border */
+height: 30px;
+}
+
+th {
+background: #DFDFDF; /* Darken header a bit */
+font-weight: bold;
+}
+
+td {
+background: #FAFAFA;
+text-align: center;
+}
+
+table tr:nth-child(odd) td{
+background-color: white;
+}
+</style>
+"""
+
+# Function to convert dataframe to image
+def DataFrame_to_image(data, css, outputfile="out.png", format="png"):
+    '''
+    For rendering a Pandas DataFrame as an image.
+    data: a pandas DataFrame
+    css: a string containing rules for styling the output table. This must 
+         contain both the opening an closing <style> tags.
+    *outputimage: filename for saving of generated image
+    *format: output format, as supported by IMGKit. Default is "png"
+    '''
+    fn = str(random.random()*100000000).split(".")[0] + ".html"
+    
+    try:
+        os.remove(fn)
+    except:
+        None
+    text_file = open(fn, "a")
+    
+    # write the CSS
+    text_file.write(css)
+    # write the HTML-ized Pandas DataFrame
+    text_file.write(data.to_html())
+    text_file.close()
+    
+    # See IMGKit options for full configuration,
+    # e.g. cropping of final image
+    imgkitoptions = {"format": format}
+    
+    imgkit.from_file(fn, outputfile, options=imgkitoptions)
+    os.remove(fn)
+
+# Try to suppress a deprecation warning...
+import warnings
+warnings.filterwarnings('ignore')
+
+# Convert the DataFrame Summary to image output
+DataFrame_to_image(COK12_dfs.columns_stats, css)
+
+MARKDOWN:
+### That worked beautifully after several days of troubleshooting.... 
+![COK12_dfs](Images/DFSout.png)
+
+We will have to refnie that image when we have a better refined dataframe.
+
+# Let's make a copy of the dataframe.
+COK12_df2 = COK12_df.copy()
+
+MARKDOWN:
+### Remember we must take note of the following information provided within the dataset (csv file)
+
+When summarizing this information there are three important points to keep in mind:
+1) Fund 90 is used for informational purposes only and must be excluded from any analysis.:
+2) All amounts are displayed with cents and without decimal places. E.g. the value $5.42 will be recorded as 542
+3) The data methodology page contains details on the categories excluded from this summary at both the District and the School level.
+
+# Drop the exclude_school and exclude_district columns from data frame
+COK12_df2 = COK12_df2.drop(['exclude_school', 'exclude_district'],axis=1)
+
+# Check columns again
+COK12_df2.columns
+
+# Look at data frame head
+COK12_df2.head()
+
+MARKDOWN:
+### Note the trailing decimal and zero for the numbers in the amount_cents column. The amount_cents column is a float64 type as the df.info() details above.
+
+REMEMBER FROM ABOVE: When summarizing this information there are three important points to keep in mind:<br>
+2) All amounts are displayed with cents and without decimal places. E.g. the value $5.42 will be recorded as 542. <br>
+
+For the moment being, we will leave the column values as intergers for visualization purposes and move them to categorical values when it is time to conduct machine learning algorithms.
+
+# Change ammount_cents to int64 not float64 to drop the trailing '.0'
+COK12_df2 = COK12_df2.astype({'amount_cents':'int64'})
+
+# Confirm data types
+COK12_df2.dtypes
+
+# Look at tail and ensure amount_cents is no longer showing as a float type with the trailing '.0'
+COK12_df2.tail()
+
+# Look at describe and compare to Data Frame Summary Statistics code we previously ran
+COK12_describe = COK12_df2.describe()
+
+# Show describe statistics
+COK12_describe
+
+# Let's try to get an html image of the describe dataframe for comparison purposes to the DataFrameSummary above eventhough the dataframe couldn't be converted to image at leaste we can retrieve the html file
+# Attempt to convert the dataframe to image output
+DataFrame_to_image(COK12_describe, css)
+
+MARKDOWN:
+### Not bad for comparitive purposes.... 
+![COK12_describe](Images/Describeout.png)
+
+We will refine this image better as we refine the dataframe columns and dataset better.
+
+#REMOVE below...
+# WHY??? WHY is this here???
+COK12_df3.head()
+
+MARKDOWN:
+### Investigate the top 5 used district_code Codes
+<br>
+DEFINITION:
+<br>
+"<b>District Code</b> – a unique identifier tied to each reporting entity" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 5).
+<br>
+<br>
+REMEMBER:
+<br>
+"ONE METHOD for BOCES to track transactions by district being served is to define location codes such that each district has its own two-digit code.  Then these two-digit district codes may be combined with the appropriate first digit to create a location code that follows the structure from the chart of accounts" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 208).
+
+# Let's see the top 5 used district_code values:
+COK12_districtCodes = pd.value_counts(COK12_df2['district_code'].values,sort=True)
+COK12_districtCodes.head()
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+    <b>Detail breakdown of the top 5 used District Codes:</b>
+<br>
+880: DENVER COUNTY 1
+<br>
+1420: JEFFERSON COUNTY R-1
+<br>
+900: DOUGLAS COUNTY RE 1
+<br>
+20: ADAMS 12 FIVE STAR SCHOOLS
+<br>
+1150: FREMONT RE-2
+</div>
+
+#### Let's look at the 5 least used District Codes
+
+# Look at tail of district codes
+COK12_districtCodes.tail()
+
+MARKDOWN:
+#### Of the least used District Codes shown below, the fewest used are as follows:
+
+9140: MT EVANS BOCES
+<br>
+9165: UTE PASS BOCES
+<br>
+8041: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+9120: ADAMS COUNTY BOCES
+
+MARKDOWN:
+### Investigate the top 5 used admin_unit Codes
+<br>
+DEFINITION:
+<br>
+"<b>Administrative Unit</b> – a unique identifier used to identify the specific administrative unit that the reporting unit is tied to" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 5).
+
+REMEMBER:
+<br>
+"An Administrative Unit (AU) is a school district, board of cooperative services, or a combination of school districts or boards of cooperative services, which is approved by CDE and normally provides educational services to exceptional children.  AU’s function similarly to BOCES.  Thus, financial transactions between AU members and non-members are recorded using the same account codes and logic as financial transactions between BOCES members and non-members" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 205).
+
+# Let's see the top 5 used admin_unit code values:
+COK12_adminUnits = pd.value_counts(COK12_df2['admin_unit'].values,sort=True)
+COK12_adminUnits.head()
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Administrative Unit Codes:</b>
+<br>
+16010: Denver 1, Denver
+<br>
+30011: Jefferson R-1, Lakewood
+<br>
+18010: Douglas Re 1, Castle Rock
+<br>
+1020: Adams 12, Northglenn-Thornton
+<br>
+35010: Larimer R-1, Poudre
+</div>
+
+#### The 5 least used Administrative Unit Codes shown below can <u>NOT</u> be found within the Chart of Account fiscal year 2016-2017.
+
+# Look at admin units tail
+COK12_adminUnits.tail()
+
+MARKDOWN:
+### Investigate the top 5 used school_code Codes
+<br>
+DEFINITION:
+<br>
+"<b>School Code</b> – a unique identifier assigned for every school building at a school district for school site reporting" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 5).
+
+#### Investigate why the value <u>0</u> is the most commonly used school_code
+NOTES on the use of the value <u>0</u>:
+<br>
+"Dimensions which are not required for a particular account type and are unused by the district, but are part of the basic account code structure, should be “zero filled" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 7).
+
+# Let's see the top 5 used school_code values:
+COK12_schoolCodes = pd.value_counts(COK12_df2['school_code'].values,sort=True)
+COK12_schoolCodes.head(6)
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+    <b>Detail breakdown of the top 5 used School Codes:</b>
+<br>
+24: ADAMS CITY HIGH SCHOOL
+<br>
+4516: KEARNEY MIDDLE SCHOOL
+<br>
+20: ADAMS CITY MIDDLE SCHOOL
+<br>
+1426: CENTRAL ELEMENTARY SCHOOL
+<br>
+7500: ROSE HILL ELEMENTARY SCHOOL
+</div>
+
+#### The 5 least used School Codes shown below can <u>NOT</u> be found within the Chart of Account fiscal year 2016-2017.
+
+COK12_schoolCodes.tail()
+
+MARKDOWN:
+### Investigate the top 5 used fund_code Codes
+<br>
+DEFINITION:
+<br>
+"<b>Fund</b> - an independent fiscal and accounting entity with a self-balancing set of accounts for recording cash and other financial resources.  It contains all related assets, liabilities and residual equities or balances, or changes therein.  Funds are established to carry on specific activities or attain certain objectives of the school district according to special legislation, regulations, or other restrictions" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+# Let's see the top 5 used fund_code values:
+COK12_fundCodes = pd.value_counts(COK12_df2['fund_code'].values,sort=True)
+COK12_fundCodes.head()
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+    <b>Detail breakdown of the top 5 used Fund Codes:</b>
+<br>
+10: General Fund
+<br>
+22: Governmental Designated-Purpose Grants Fund
+<br>
+11: Charter School Fund
+<br>
+21: Food Service Fund
+<br>
+23: Pupil Activity Special Revenue Fund
+</div>
+
+#### The 5 least used Fund Codes can <u>NOT</u> be found within the Chart of Account fiscal year 2016-2017.
+
+# Look at fund codes tail
+COK12_fundCodes.tail()
+
+MARKDOWN:
+### Investigate the top 5 used location_code Codes
+<br>
+DEFINITION:
+<br>
+"<b>Location</b> - a dimension used as a way to identify schools, attendance centers, operational units, buildings, or sites as budgetary units or cost center designators, as a means of segregating costs" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+NOTE:
+<br>
+"When compiling reports to reflect school district expenditures, the Colorado Department of Education (CDE) will use location codes in conjunction with program codes to report school district instructional programs by level.  However, the CDE will use program codes only--rather than program codes and location codes--to report school district support expenditures" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 19).
+
+# Let's see the top 5 used location_code values:
+COK12_locationCodes = pd.value_counts(COK12_df2['location_code'].values,sort=True)
+COK12_locationCodes.head(6)
+
+MARKDOWN:
+#### Investigate why the value <u>0</u> is amongst the top 5 most commonly used location_code codes
+
+##### More NOTES on the use of the value <u>0</u> and notes specific to location_code:
+
+"Note: Location codes 001 through 099 are available if needed for district use to identify elementary schools" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 19).
+
+"A unique and specific location code should be used for each on-line school or program within the District" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 20).
+
+"Note:  all on-line school and program location codes are bolded and on-line school and program detailed activities must be reported (reporting of single purchase service account for online is not allowable" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 20).
+
+"900-969  Location codes 900 through 969 are reserved for district use for charter schools only.<br>
+900 – 919  Elementary Charter Schools.  Location codes 900 through 919 must be used for elementary charter schools.<br>
+920 – 929 Middle School Charter Schools.  Must be used for middle school (junior high) charter schools.<br>
+930 – 939 High School Charter Schools.  Must be used for high school charter schools.<br>
+940 – 949 Vocational/Technical Charter Schools.  Must be used for vocational/technical charter schools.<br>
+950 – 969  Combination Charter Schools.  Location codes 950 through 969 must be used for combination charter schools
+970 Other Operational Units.<br>
+Location codes 970 through 989 are available for district use for other operational units not specified elsewhere.<br>
+990 Private/Parochial Schools.  Used to identify private or parochial schools.<br>
+Location codes 990-999 are available for district use." (CDE, <i>FY16-17 Chart of Accounts</i>, p. 21).
+<br>
+<br>
+<b>"In order to produce an apples-to-apples comparison, CDE will use location codes to aggregate instructional program data reported for elementary and middle schools regardless of whether these data are reported by subject or by a general education program such as 0070 Gifted and Talented or 0080 General Instructional Media" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 28).</b>
+<br>
+<br>
+"Charter school location codes MUST be used with ALL transactions relating to charter schools" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 149).
+<br>
+<br>
+<b>"HOW LOCATION CODES CAN BE USED BY THE BOCES 
+<br>
+CDE will use location codes numbered 100 through 599 in conjunction with instructional program codes to identify instructional costs by level (i.e., as elementary, middle/junior high school, or high school). Therefore, BOCES MUST use the structure for location codes that is defined in the chart of accounts" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 207).</b>
+<br>
+<br>
+"ONE METHOD for BOCES to track transactions by district being served is to define location codes such that each district has its own two-digit code.  Then these two-digit district codes may be combined with the appropriate first digit to create a location code that follows the structure from the chart of accounts" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 208).
+<br>
+<br>
+"LOCATIONS
+
+Locations 900 through 969.
+
+Location codes 900 through 969, which are reserved exclusively for charter schools, are required for recording charter school revenues and expenditures and balance sheet.  Each charter school must have a unique location code that identifies the school and level.  So that the level can be identified, the following structure must be used when assigning location codes.   
+
+* Locations 900 through 919 are used for elementary charter schools.
+* Locations 920 through 929 are used for middle school (jar high) charter schools. 
+* Locations 930 through 939 are used for high school charter schools.
+* Locations 940 through 949 are used for vocational/technical charter schools.
+* Locations 950 through 969 are used for combination charter schools. 
+
+These charter school location codes must be used for all charter school transactions regardless of fund" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 235).
+
+"Note: Even though location codes and program codes are not required for revenue transactions, the district may find use of location codes and/or program codes in user fee revenue account strings helpful for identifying usage by specific programs or sites" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 248).
+
+"Note: Even though location codes and program codes are not required for revenue transactions, the district may find use of location codes and/or program codes in user fee revenue account strings helpful for identifying usage by specific programs or sites" (CDE, <i>FY16-17 Chart of Accounts</i>, p.255).
+
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Location Codes:</b>
+<br>
+100: Location Codes <b>100 - 199</b> is used for Elementary Schools per the source (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: Location).
+<br>
+300: Location Codes <b>300 - 399</b> is used for High Schools per the source (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: Location).
+<br>
+600: Centralized Services <b>600 - 699</b> is used for "Activities or services associated with district-wide or centralized administration, program direction, curriculum services, business services, and related support services" (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: Location).
+<br>
+200: Location Codes <b>200 - 299</b> is used for Middle (Junior High) Schools per source (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: Location).
+<br>
+<b>0: Location_code <u>Zero "0"</u> account for 23,168 financially funded items.</b>
+<br>
+500: Combination Schools <b>500 - 599</b> is used for "Schools that house on a permanent basis more than one type of instructional organization; e.g. an elementary school and a middle school" (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: Location).
+</div>
+
+#### Let's look at the 5 least used Location Codes: 
+
+# Look at tail of location codes
+COK12_locationCodes.tail()
+
+MARKDOWN:
+#### Of the 5 least used Location Codes shown below, the fewest used are as follows:
+<br>
+182: Elementary Schools
+<br>
+104: Elementary Schools
+<br>
+134: Elementary Schools
+<br>
+623: Centralized Services
+<br>
+983: Other Operational Units
+<br>
+As quoted, "Location codes 970 through 989 are available for district use for other operational units not specified elsewhere" (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: Location).
+
+MARKDOWN:
+### Investigate the top 5 used sre_code Codes
+
+DEFINITION:
+<br>
+"<b>Special Reporting Element (SRE)</b> - describes the activity for which a service or material object is acquired, much like a function.  This element is optional, but may be used with the program element to differentiate program costs" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+REMEMBER:
+<BR>
+"Note: SRE codes 60 through 89 are available for district use" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 25).
+
+MARKDOWN:
+#### Investigate why the value <u>0</u> is the most used sre_code
+
+"...the Special Reporting Element describes the activity for which a service or material object is acquired.  The SRE’s of a school district are classified into six broad areas:  Instruction, Support Services, Non-Instructional Services, Facilities Acquisition and Construction Services, Other Uses, and Reserves.  SREs and sub-SREs consist of activities which have somewhat the same general operational objectives.  Categories of activities comprising each of the divisions and subdivisions are grouped according to the principle that the activities can be combined, compared, related, and mutually exclusive.
+
+<B>The use of the SRE is voluntary. Nonetheless and as with all non-required (non-bolded) items, it is recommended that if a district chooses to implement this element, tot follow the scheme provided below.</B>
+
+Note: the one non-optional exception to this is SRE code 95.  SRE 95 is used to identify Consolidated School wide Plans" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 23).
+
+# Let's see the top 5 used sre_code values:
+COK12_sreCodes = pd.value_counts(COK12_df2['sre_code'].values,sort=True)
+COK12_sreCodes.head(6)
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Special Reporting Element (SRE) Codes:</b>
+<br>
+<b>0: sre_code <u>Zero "0"</u> accounts for 268,470 financially funded Special Reporting Elements (SRE) items.</b>
+<br>
+60: <b>Other</b> SRE Code is said to be used for "SRE codes 60 through 89 are available for district use"  (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE).
+<br>
+95: <b>Consolidated School wide Program</b> is said to be used for "This SRE code identifies Consolidated School wide Programs.  It is used in conjunction with a unique location code for each school wide plan site and Object Code 0855.  Object Code 0855 identifies the School wide Plan Distribution, as an option to detailed object coding.  SRE 95 should be used for the coding of all expenditure activities related to a specific school’s school wide plan.  SRE should also be used in all General Fund (10) Abatement Accounts and all Governmental Grants Fund (22) or General Fund (10) Grant Accounts for the grant programs that have been included in the specific school wide plan. See Appendix T, “Consolidated School wide Programs,” for additional information" (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE). 
+<br>
+21: <b>Students</b> is said to be used for "Activities designed to assess and improve the well-being of students and to supplement the teaching process" (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE). 
+<br>
+22: <b>Instructional Staff</b> is said to be sued for " Activities associated with assisting the instructional staff with the content and process of providing learning experiences for students." (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE). 
+<br>
+11: <b>Regular Education</b> *There are no other detail information provided on what Regular Education entails.
+</div>
+
+#### Let's look at the least 5 used SRE Codes: 
+
+# Look at SRE Code tail
+COK12_sreCodes.tail()
+
+MARKDOWN:
+#### Of the 5 least used SRE Codes, the fewest used are as follows:
+<br>
+75: <b>Other</b> SRE Code is said to be used for "SRE codes 60 through 89 are available for district use"  (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE).
+<br>
+42: <b>Site Improvement Services</b> is said to be used for "Activities concerned with improving sites, and with maintaining existing site improvements" (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE).
+<br>
+7: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+1: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+29: <b>Other</b> is said toe be used for, "All other support services not classified elsewhere in the 20 series" "  (CDE, <i>Chart of Accounts_1617.xlsx</i>, sheet: SRE).
+
+MARKDOWN:
+### Investigate the top 5 used program_code Codes
+
+DEFINITION:
+<br>
+"<b>Program</b> - a dimension which describes the activity for which a service or material object is acquired. The programs of a school district are classified into six broad areas:  Instruction, Support Services, Operation of Non-Instructional Services, Facilities Acquisition and Construction Services, Other Uses, and Reserves" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+REMEMBER:
+<BR>
+"A program is a plan of activities and procedures designed to accomplish a predetermined objective or set of objectives. The program dimension provides the school district a framework to classify expenditures to determine total costs of attaining such predetermined objectives.  The program dimension allows a school district to charge costs, instructional and support, directly to the benefiting program" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 27).
+
+#### Investigate why the value <u>0</u> is the most used program_code
+
+# Let's see the top 5 used program_code values:
+COK12_programCodes = pd.value_counts(COK12_df2['program_code'].values,sort=True)
+COK12_programCodes.head(6)
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Program Codes:</b>
+<br>
+0: <b>Zero "0" program_code accounts for 39,439 financially funded items.</b>
+<br>
+2400: Support Services - School Administration
+<br>
+10: General Elementary Education
+<br>
+2200: Support Services - Instructional Staff
+<br>
+2100: Support Services - Students
+<br>
+1700: Special Education
+</div>
+
+#### Look at the least 5 used Program Codes used:
+
+# Look at program code tail
+COK12_programCodes.tail()
+
+MARKDOWN:
+#### Of the 5 least used Program Codes shown below, the fewest used are as follows:
+<br>
+1969: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b> 
+<br>
+1771: Speech Pathology Services
+<br>
+1972: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+2122: Counseling Services
+<br>
+29: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+
+MARKDOWN:
+### Investigate the top 5 used object_source_code Codes
+
+DEFINITION:
+<br>
+"<b>Source/Object/Balance Sheet</b> - a combination dimension which is used to identify the type of account: Balance Sheet, Revenue (Sources), or Expenditure (Object).  Object is the service or commodity obtained" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+NOTE:
+<br>
+"The Object/Source/Balance Sheet is the eighth code of the account string.  It is a multiplepurpose four-digit code.  The first digit identifies the account type and determines the dimension and purpose. See details below." (CDE, <i>FY16-17 Chart of Accounts</i>, p. 123).
+
+### Object/Source/Balance Sheet
+![Revenue](Images/obsSheet.PNG)
+
+REMEMBER:
+<br>
+Within the Colorado Department of Education Financial Prolicies and Procedures Chart of Accounts (fiscal year 2016-2017), Object Source Code or Source/Object code are defined as an account code element:
+<br>
+
+# Let's see the top 5 used object_source_code values:
+COK12_objectSourceCodes = pd.value_counts(COK12_df2['object_source_code'].values,sort=True)
+COK12_objectSourceCodes.head()
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Object Source Balance Codes:</b>
+<br>
+100: Salaries
+<br>
+200: Employee Benefits
+<br>
+600: Supplies
+<br>
+500: Other Purchased Services
+<br>
+580: Travel, Registration, and Entrance
+</div>
+
+MARKDOWN:
+#### Revenue, Expenditure, and Balance Sheet Account Code Structure
+<br>
+NOTE:
+
+"The following illustrations present the basic account code structure for each account type by a series of Xs and hyphens.  Each X designates the placement of a numerical digit (which can include zero) in the account code" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 8). (More information later on the account code structure.)
+
+"Offset to Source Codes 1956, 3956, and 4956, used with the appropriate grant code, which may be zero" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 134).
+
+"Offset to Object Code 0596, used with the appropriate grant code, which may be zero" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 151).
+
+"Offset to Source Codes 1956, 3956, and 4956, used with the appropriate grant code, which may be zero" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 257).
+<br>
+<br>
+All three account types—revenues, expenditures, and balance sheet accounts—use the same basic multidimensional account code structure as shown below:
+
+MARKDOWN:
+## <center>Revenue, Expenditure, and Balance Sheet Account Code Structure</center>
+
+All three account types—revenues, expenditures, and balance sheet accounts—use the same basic multidimensional account code structure as shown below:
+
+### This is the Dimensions of the REVENUE account code structure:
+![Revenue](Images/revDIM.PNG)
+
+### This is the Dimensions of the EXPENDITURE account code structure:
+![Revenue](Images/expDIM.PNG)
+
+### This is the Dimensions of the BALANCE account code structure:
+![Revenue](Images/bsDIM.PNG)
+
+<br>
+(CDE, <i>FY16-17 Chart of Accounts</i> pg. 7)
+<br>
+<br>
+Reference:
+<br>
+<br>
+Colorado Department of Education. (2016, July 1). Chart of Accounts: 2016-17. Copyright © 1999-2020 Colorado Department of Education. Retrieved from https://www.cde.state.co.us/cdefinance/fpp_coa1617 
+
+MAKRDOWN:
+## <center>Format of Accounts</center>
+
+### This is the format and sequencing of the elements in the REVENUE account code:
+![Revenue](Images/revCOA.PNG)
+
+### This is the format and sequencing of the elements in the EXPENDITURE account code:
+![Expenditure](Images/expCOA.PNG)
+
+### This is the format and sequencing of the elements in the BALANCE account code:
+![Balance](Images/bsCOA.PNG)
+
+<br>
+(CDE, <i>FY16-17 Chart of Accounts</i> pg. 8, and 9).
+<br>
+<br>
+Reference:
+<br>
+<br>
+Colorado Department of Education. (2016, July 1). Chart of Accounts: 2016-17. Copyright © 1999-2020 Colorado Department of Education. Retrieved from https://www.cde.state.co.us/cdefinance/fpp_coa1617 
+
+#### Let's look at the least 5 Object Source Balance Codes used: 
+
+# Look at object_source_code tail
+COK12_objectSourceCodes.tail()
+
+MARKDOWN:
+#### Of the 5 least used Object Source Balance Codes shown below, the fewest  used are as follows:
+<br>
+3240: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+1810: Adult Education
+<br>
+7441: Matured bonds payable
+<br>
+618: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+0: <b>object_source_code <u>Zero "0"</u> account for 1 financially funded Object/Source/Balance code.</b>
+
+MARKDOWN:
+### Investigate the top 5 used job_class_code Codes
+
+DEFINITION:
+<br>
+"<b>Job Classification</b> - a dimension which enables school districts to break down expenditures for salaries and employee benefits by the employee’s job classification" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+NOTE:
+<br>
+"The job classification dimension enables school district to break down expenditures for salaries and employee benefits by the employee's job classification.  This dimension is used at least three ways in school accounting:  (1) to classify payroll costs for personnel purposes; (2) to segregate certified and non-certified salaries and benefits; and, (3) to accumulate payroll costs by bargaining unit for purposes of labor negotiations" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 167).
+
+"Currently, the required reporting level of detail for this dimension for Finance December Data Pipeline is minimal (100 Administrator; 200 Professional - Instructional; 300 Professional - Other; 400 Paraprofessional; 500 Office/Administrative Support; and, 600 Crafts, Trades, and Services)" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 167).
+
+REMEMBER:
+<br>
+"The job classification dimension applies only to expenditure accounts with object codes 0100 through 0299.  The job classification dimension is not applicable for: expenditure accounts with object codes 0300 to 0999; revenue accounts; or, balance sheet accounts" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 167).
+
+# Let's see the top 5 used job_class_code values:
+COK12_jobClassCodes = pd.value_counts(COK12_df2['job_class_code'].values,sort=True)
+COK12_jobClassCodes.head(6)
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Job Class Codes:</b>
+<br>
+0: <b>Zero "0" job_class_code account for 172,392 financially funded items.</b>
+<br>
+200: Professional - Instructional
+<br>
+400: Paraprofessionals
+<br>
+    600: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+    500: <b>Not found within the Chart of Accounts fiscal year 2016-2017.</b>
+<br>
+100: Administrator
+</div>
+
+MARKDOWN:
+#### Investigate why the value <u>0</u> is the most used job_class_code
+
+NOTE:
+"Districts are advised against adding codes beyond what is defined in this section since adding codes could create future problems if the required reporting level is expanded" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 167).
+
+<b>This could be a result at to why <u>0</u> is amongst the highest job_class_code used.</b>
+
+#### Okay, let's look at the least 5 Job Class Codes used: 
+
+# Look at job class code tail
+COK12_jobClassCodes.tail()
+
+MARKDOWN:
+#### Of the Job Class Codes used, the fewest codes used are as follows:
+<br>
+630: Vehicle Operator
+<br>
+634: Student Worker
+<br>
+601: Brick Mason 
+<br>
+401: Bilingual Assistant
+<br>
+417: Teaching/Classroom Technician
+
+MARKDOWN:
+### Investigate the top 5 used grant_code Codes
+
+DEFINITION:
+<br>
+"<b>Designated Grant/Project</b> - an award of financial assistance in the form of cash or a contribution or gift of other assets from another government to an eligible grantee to be used for a specified or designated purpose, activity or facility. " (CDE, <i>FY16-17 Chart of Accounts</i>, p. 6).
+
+NOTE:
+<br>
+"This dimension is intended to provide a means of segregating financial data associated with specific grants and categorical funding projects.  A GRANT is an award of financial assistance in the form of cash or a contribution or gift of other assets from another government to an eligible grantee to be used for a specified or designated purpose, activity, or facility.  Categorical funding is financial assistance to help offset costs of providing services related to specific PROJECTS such as Vocational Education, Exceptional Children’s Educational Act (which includes special education, and gifted and talented education), and English Language Proficiency Act" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 184).
+
+REMEMBER:
+<br>
+"The designated grants/projects dimension serves a dual purpose:  verifying that special grant and project revenues which are provided for specified or designated purposes are expended for those purposes; and, identifying total project expenditures--regardless of, and in excess of, special revenue.  Project expenditures in excess of categorical revenues are assumed to be subsidies" (CDE, <i>FY16-17 Chart of Accounts</i>, p. 184).
+
+# Let's see the top 5 used grant_code values:
+COK12_grantCodes = pd.value_counts(COK12_df2['grant_code'].values,sort=True)
+COK12_grantCodes.head(6)
+
+MARKDOWN:
+#### Investigate why the value <u>0</u> is the largest used grant_code
+
+NOTE:
+<br>
+"How Grant/Project Codes Are Assigned 
+
+The grant/project code is a four-digit code.  The first digit identifies the revenue source of the grant or project as local, intermediate, state, or federal.  The second, third, and fourth digits are defined by the district for local and intermediate grants, and by the Colorado Department of Education (CDE) for state and federal grants.  See detail below." 
+
+#### Grant Source Code Assignments
+![Revenue](Images/grantSource.PNG)
+
+(CDE, <i>FY16-17 Chart of Accounts</i>, p. 185).
+
+MARKDOWN:
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the top 5 used Grant Codes</b>
+<br>    
+0: <b>Zero "0" grant_code account for 197,260 financially funded items.</b>
+<br>
+3130: State ECEA (Special Education)
+<br>
+4010: No Child Left Behind, Title I, Part A: Improving Basic Programs Operated by Schools. Formula Grant CFDA# 84.010
+<br>
+1: Local and Intermediate Project/Grants
+<br>
+3120: State Vocational Education (Source 3010)
+<br>
+3140: State ELPA
+</div>
+
+#### Now look at the least 5 used Grant Codes: 
+
+# Look at grant code tail
+COK12_grantCodes.tail()
+
+#### Of the 5 least used Grant Codes, the fewest are as follows:
+<br>
+3162: School Breakfast Program 
+<br>
+7389: ARRA - Title I, Part A Delinquent CFDA# 84.389
+<br>
+9005: Department of Defence Supplemental CFDA# None
+<br>
+1787: Not found within the Chart of Accounts fiscal year 2016-2017.
+<br>
+9036: Disaster Grants Public Assistance (Presidential Declared Disasters) CFDA# 97.036
+
+MARKDOWN:
+## <center>Further EDA</center>
+
+MARKDOWN:
+### My Midway SUMMARY of FINDINGS:
+
+It seems a lot of the financial codes used within the dataset are either related in some way or by no means is there a known correlation. Depending on the funding reasons, there are many anomalies and outliers to consider. Further Exploratory Data Analysis (EDA) needs to be conducted. While I have personally found some columns that may not necessarily provide vital information to the purpose of the project, I believe that I will not be able to get to the root cause of the project research questions without eliminating those columns of little value. <b>In particular to reaching some solid answers to complete this project, I have made the executive decision to omit <u>sre_code, job_class_code, and grant_code</u>.</b> Each of these columns contain values that do not pertain to why funding is spent but rather special circumstances within the spent funds of the Colorado K12 Financial Transparency data set. <b>I have also made the decision to omit any <u>zero</u> value codes as it doesn't feed into the project objectives.</b>
+
+Moving on and as suggested by fellow peers, I will subset column values as I move forward. First, let's see what we can learn from grouping columns and bring further breadth of knowledge to what can be of benefit.
+
+
+
+STOPPED COPY OF CODE INTO NOTEPAD HERE!!!!
+# STOPPED copy of code into notepad here!!!!
+
+
+
+Last code!!!!:
+
+MARKDOWN:
+Moving onto add decimals since commas are in the wrong place with decimals....!!!!
+
+Thanks to Professor Nathan George, he provided a helpful function to convert the column amount_cents to string and then back to float with the decimal in the correct place for the last 2 digits as the cents part of the currency value. I made a minor adjustment to the function and requested the return to contain the '.' (decimal) peice of the currency value. 
+
+# Function to convert integer to string, add decimal, and convert bck to float. (Courtesy of Professor George)
+
+def convert_to_decimal(number):
+    # convert number to string
+    num_str = str(number)
+
+    # take everything but the last two digits as the integer part of the number
+    int_part = num_str[:-2]
+    
+    # take the last 2 digits as the decimal places
+    dec_part = num_str[-2:]
+    
+    return int_part + '.' + dec_part
+
+# Let's make a copy of the dataframe again just in case things go wrong
+COK12_df3 = COK12_df2.copy()
+
+MARKDOWN:
+
+# Add decimal to amount_cents column values
+COK12_df2['amount_cents'] = COK12_df2['amount_cents'].apply(convert_to_decimal)
+
+# Check head to confirm decimal
+COK12_df2.head()
+
+# Look at data types again....
+COK12_df2.dtypes
+
+# Look at entire amount_cents type again
+type(COK12_df2['amount_cents'])
+
+# Check head of two newly created data types and columns (amount_cents_formatted) and (amount_cents_formated)
+COK12_df2.head()
+
+# Add decimal to amount_cents column formated values
+COK12_df2['amount_cents_formated'] = COK12_df2['amount_cents'].apply(convert_to_decimal)
+
+# Add decimal to amount_cents column formatted values
+COK12_df2['amount_cents_formatted'] = COK12_df2['amount_cents_format'].apply(convert_to_decimal)
+
+# Check data types again....
+COK12_df2.dtypes
+
+# TEST df2 against df3
+
+#Check dataframe 3 head
+COK12_df3.head()
+
+
+ATTEMPT TO APPLY COMMA:
+lst = list(COK12_df2['amount_cents'])
+for c in lst:
+    COK12_df2['amount_cents_formatted'] = COK12_df2['amount_cents'].astype(int).apply(lambda x : f'{x:,}')
+
+#Same as below and above
+COK12_df2['amount_cents_formated'] = COK12_df2['amount_cents'].apply(lambda x : f'{x:,}')
+
+#Similar to above
+COK12_df2['amount_cents_formated'] = COK12_df2['amount_cents'].apply(lambda x : "{:,}".format(x))
+
+
+MARKDOWN:
+### Note that although the values within each column are "number" values and showing as type integer, the numbers are unique ids for categorical data. Therefore, we should change the type of all columns except the <u>amount_cents</u> column to the dtype "category" not int64.
+
+# Convert columns to categorical types
+COK12_df2 = COK12_df2.astype({
+    'district_code':'category',
+    'admin_unit': 'category',
+    'school_code':'category',
+    'fund_code':'category',
+    'location_code':'category',
+    'sre_code':'category',
+    'program_code':'category',
+    'object_source_code':'category',
+    'job_class_code':'category',
+    'grant_code':'category'
+})
+
+# Check data types of columns now
+COK12_df2.dtypes
+
+# FALSE Attempt at comma adding function?  
+    
+    lis_num = list(str(number))
+    if len(int_part) > 3:
+        index_offset = 0
+        for index in range(len(int_part)):
+            mod_index = (index + 1) % 3
+            neg_index = -1 * (index + 1 + index_offset)
+            if mod_index == 0:
+                lis_num.insert(neg_index, ",")
+                index_offset += 1
+        new_int_part= "".join(lis_num)
+    else: 
+        new_int_part = str(number)
+
+##Attempt feature engineering
+#Column 11 amount_cents is the target variable.
+# Attempt to:
+* Conduct a 80 / 320 train-test split
+* Train a RandomForestClassifier
+* Look at the feature importance of each column to the target value
+* Run & evaluate accuracy on the test data
+
+# Import scikit learn library
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+
+# Assign y value to target value and drop from original date frame
+y = COK12_df2.amount_cents
+x = COK12_df2.drop(['amount_cents'], axis=1)
+
+x_train,x_test,y_train,y_test=train_test_split(x,y,test_size=0.2)
+
+clf=RandomForestClassifier(n_estimators=100)
+
+clf.fit(x_train,y_train)
+
+y_pred=clf.predict(x_test)
+
+from sklearn import metrics
+
+print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
+
+## START VISUALIZATIONS
+
+# Import libraries
+import seaborn as sns
+import matplotlib
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+DUE TO THE FOLLOWING ERROR:
+TypeError: _plot_histogram() got an unexpected keyword argument 'title'
+
+# Check matplotlib version (should be 3.1.2)
+matplotlib.__version__
+
+#Use Anaconda Prompt to check version (should be 3.7.4)
+python.__version__
+
+
+# Generate pandas profile report
+COK12_profile = ProfileReport(df, title='Pandas CO K12 Profiling Report', html={'style':{'full_width':True}})
+
+# Display profile report in Jupyter Notebook widgets
+COK12_profile.to_widgets()
+
+# Include html report in Jupyter Noteboook
+COK12_profile.to_notebook_iframe()
+
+# Save the profile report out to html
+COK12_profile.to_file(output_file="your_report.html")
+
+### Now, notice the numbers in the amount_cents column are showing as integers and whole numbers. We will have to think about adding decimals and commas to represent those column values as currency.
+
+REMEMBER FROM ABOVE: When summarizing this information there are three important points to keep in mind:<br>
+2) All amounts are displayed with cents and without decimal places. E.g. the value $5.42 will be recorded as 542. <br>
+
+For the moment being, we will leave the column values as intergers for visualization purposes and move them to categorical values when it is time to conduct machine learning algorithms.
