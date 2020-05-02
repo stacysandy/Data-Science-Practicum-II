@@ -32,7 +32,7 @@ All the numbers within each column are numerical values that are tied to unique 
 
 For example: school code 100 indicates elemetary schools. Therefore, it would never make sense to add these numerical values or numbers together within each column. The unique id of school code and adding to another unique id fund code, wouldn't make sense in this data set.
 
-#Let's confirm a count on null valuws in the entire data set.
+#Let's confirm a count on null values in the entire data set.
 print(np.count_nonzero(COK12_df.isnull()))
 
 # Look at the data frame summary data
@@ -154,7 +154,7 @@ MARKDOWN:
 REMEMBER FROM ABOVE: When summarizing this information there are three important points to keep in mind:<br>
 2) All amounts are displayed with cents and without decimal places. E.g. the value $5.42 will be recorded as 542. <br>
 
-For the moment being, we will leave the column values as intergers for visualization purposes and move them to categorical values when it is time to conduct machine learning algorithms.
+For the moment being, we will leave the column values as intergers for visualization purposes and move them to categorical values when it is time to conduct the machine learning algorithm.
 
 # Change ammount_cents to int64 not float64 to drop the trailing '.0'
 COK12_df2 = COK12_df2.astype({'amount_cents':'int64'})
@@ -165,14 +165,29 @@ COK12_df2.dtypes
 # Look at tail and ensure amount_cents is no longer showing as a float type with the trailing '.0'
 COK12_df2.tail()
 
+MARKDOWN:
+### Again, we must take note of the following information provided within the dataset (csv file)
+
+REMEMBER FROM ABOVE: When summarizing this information there are three important points to keep in mind:<br>
+
+1) <b>Fund 90</b> is used for informational purposes only and must be excluded from any analysis.<br>
+
+# Let's delete every row that has fund 90 in the fund_code column to exclude fund 90
+# First obtain all rows/indexs in fund_code that has the value 90
+indexValues = COK12_df2[COK12_df2['fund_code'] == 90].index
+
+# Delete The row indexes from the dataframe
+COK12_df2.drop(indexValues, inplace=True)
+
+
 # Look at describe and compare to Data Frame Summary Statistics code we previously ran
 COK12_describe = COK12_df2.describe()
 
 # Show describe statistics
 COK12_describe
 
-# Let's try to get an html image of the describe dataframe for comparison purposes to the DataFrameSummary above eventhough the dataframe couldn't be converted to image at leaste we can retrieve the html file
-# Attempt to convert the dataframe to image output
+# Let's try to get an image of the describe dataframe for comparison purposes to the DataFrameSummary above
+# Attempt to convert the dESCRIBE to image output
 DataFrame_to_image(COK12_describe, css)
 
 MARKDOWN:
@@ -180,10 +195,6 @@ MARKDOWN:
 ![COK12_describe](Images/Describeout.png)
 
 We will refine this image better as we refine the dataframe columns and dataset better.
-
-#REMOVE below...
-# WHY??? WHY is this here???
-COK12_df3.head()
 
 MARKDOWN:
 ### Investigate the top 5 used district_code Codes
@@ -798,16 +809,425 @@ COK12_grantCodes.tail()
 9036: Disaster Grants Public Assistance (Presidential Declared Disasters) CFDA# 97.036
 
 MARKDOWN:
-## <center>Further EDA</center>
+### amount_cents column and values
+If you take a closer look at our data set, you will learn that every single column is an identifer to a categorical value. These numerical values for each column district_code, admin_unit, school_code, fund_code, location_code, sre_code, program code, object-source_code, job_class_code, and grant_code are all nominal categorical values. <b>Only one column, <u>amount_cents</u> is a true numerical continuous value.</b> 
+
+### Let's look at our one and only true numerical column amount_cents and the values. First look at head and then tail.
+
+#Let's sort the dataframe by amount_cents and see the highest values spent
+AC_sort = COK12_df2.sort_values(by=['amount_cents'],ascending=False)
+AC_sort.head()
+
+#Let's see the amount_cents lowest values spent
+AC_sort.tail()
+
+<div class="alert alert-block alert-info">
+<b>Detail breakdown of the highest amount_cents value spent and least amount spent in the Colorado K-12 Financial Transperency data set:</b>
+<br>
+<br>
+<b>Highest amount_cents value: $1,633,140,000.00</b>
+<br>
+district_code: 880 DENVER COUNTY 1
+<br>
+admin_unit: 16010 Denver 1, Denver
+<br>
+school_code: 0
+<br>
+fund_code: 10 General Fund
+<br>
+location_code: 800 District-wide Costs
+<br>
+sre_code: 0
+<br>
+program_code: 0
+<br>
+object_source_code: 7401 Interfund loan payable
+<br>
+job_class_code: 0
+<br>
+grant_code: 0
+
+
+<b>Least amount_cents value: $-1,614,800,000.00</b>
+<br>
+district_code: 880 DENVER COUNTY 1
+<br>
+admin_unit: 16010 Denver 1, Denver
+<br>
+school_code: 0
+<br>
+fund_code: 10 General Fund
+<br>
+location_code: 800 District-wide Costs
+<br>
+sre_code: 0
+<br>
+program_code: 0
+<br>
+object_source_code: 74021 Interfund  accounts payable
+<br>
+job_class_code: 0
+<br>
+grant_code: 0
+
+#### Both <u>Interfund loan payable</u> and <u>Interfund accounts payable</u> are categorized as Liabilities and Other Credits / Current liabilities.
+</div>
+
+MARKDOWN:
+### Let's see what we can learn from grouping columns and try to bring further breadth of knowledge to what can be of benefit to our overall project.
+
+# Let's groupBy fund_code and admin_unit then get a count on school_code
+SCn_by_FCAU = COK12_df2.groupby(['fund_code', 'admin_unit'], sort = True)['school_code'].count()
+
+# Look at head of groupby
+SCn_by_FCAU.head()
+
+# Look at tail of groupby
+SCn_by_FCAU.tail()
+
+#### Interesting groupby, but I think we need more values that can reveal the fund, object_source, admin_unit, and then a count on the school code.
+
+# Let's groupBy fund_code, object_source_code and admin_unit then get a count on school_code
+SCn_by_FCOSCAU = COK12_df2.groupby(['fund_code', 'object_source_code', 'admin_unit'])['school_code'].count()
+
+# Let's look at the groupBy head
+SCn_by_FCOSCAU.head()
+
+# Let's look at the groupBy tail
+SCn_by_FCOSCAU.tail()
+
+# Let's print the groupBy
+print(SCn_by_FCAU)
+
+MARKDOWN:
+#### Interesting groupby, but I think we need more values that can reveal the fund, object_source, admin_unit, and then a count on the school code.
+
+# Let's groupBy fund_code, object_source_code and admin_unit then get a count on school_code
+SCn_by_FCOSCAU = COK12_df2.groupby(['fund_code', 'object_source_code', 'admin_unit'], sort=True, as_index=False)['school_code'].count()
+
+# Let's look at the groupBy head
+SCn_by_FCOSCAU.head()
+
+# Let's look at the groupBy tail
+SCn_by_FCOSCAU.tail()
+
+# Import libaries
+import seaborn as sns
+import matplotlib.pyplot as plt
+%matplotlib inline
+sns.set(style="ticks", color_codes=True)
+
+# Conduct a simple plot of the groupBy dataframe SCn_by_FCOSCAU too see fund_code by school_code
+SCn_by_FCOSCAU.plot(x='fund_code', y='school_code', kind='scatter', color='purple')
+plt.title('School Code Count by Fund Code')
+plt.xlabel('Fund Code')
+plt.ylabel('Count of School Code')
+plt.savefig('SCn_by_FC.png')
+plt.show()
+
+# Conduct a simple plot of the groupBy dataframe SCn_by_FCOSCAU too see object_source_code by school_code
+SCn_by_FCOSCAU.plot(x='object_source_code', y='school_code', kind='scatter', color='green')
+plt.title('School Code Count by Object Source Code')
+plt.xlabel('Object Source Code')
+plt.ylabel('Count of School Code')
+plt.savefig('SCn_by_OSC.png')
+plt.show()
+
+# Conduct a simple plot of the groupBy dataframe SCn_by_FCOSCAU too see admin_unit by school_code
+SCn_by_FCOSCAU.plot(x='admin_unit', y='school_code', kind='scatter', color='blue')
+plt.title('School Code Count by Admin Unit')
+plt.xlabel('Admin Unit Code')
+plt.ylabel('Count of School Code')
+plt.savefig('SCn_by_AU.png')
+plt.show()
+
+MARKDOWN:
+### Side Note:
+
+Something to consider why very little visualizations have been composed up to this point. We are dealing with highly categorical values and placing those values into an x and y graphs or graphical format is very limited since the numbers are not actual numbers, integers, or float values. In fact, all but one column is an identifier to a categorical value. Thus, causing me great complications to show more effective visualizations. The above groupBy data frame allowed me to conduct some basic visualizations for the time being. I promise more visualizations will follow as soon as I get a good representative data frame to support the purpose of this project.
 
 MARKDOWN:
 ### My Midway SUMMARY of FINDINGS:
 
-It seems a lot of the financial codes used within the dataset are either related in some way or by no means is there a known correlation. Depending on the funding reasons, there are many anomalies and outliers to consider. Further Exploratory Data Analysis (EDA) needs to be conducted. While I have personally found some columns that may not necessarily provide vital information to the purpose of the project, I believe that I will not be able to get to the root cause of the project research questions without eliminating those columns of little value. <b>In particular to reaching some solid answers to complete this project, I have made the executive decision to omit <u>sre_code, job_class_code, and grant_code</u>.</b> Each of these columns contain values that do not pertain to why funding is spent but rather special circumstances within the spent funds of the Colorado K12 Financial Transparency data set. <b>I have also made the decision to omit any <u>zero</u> value codes as it doesn't feed into the project objectives.</b>
+It is evident that fund_code 10: General Funding is the most frequently used fund code. Object Source Code below 2000 is most used by school code count. While Admin Unit Code is spread out across school code count. Depending on the funding reasons, there are many anomalies and outliers to consider. Further Exploratory Data Analysis (EDA) needs to be conducted. While I have personally found some columns that may not necessarily provide vital information to the purpose of the project, I believe that I will not be able to get to the root cause of the project research questions without eliminating those columns of little value. <b>In particular to reaching some solid answers to complete this project, I have made the executive decision to omit <u>sre_code, job_class_code, and grant_code</u>.</b> Each of these columns contain values that do not pertain to why funding is spent but rather special circumstances within the Colorado K12 Financial Transparency data set. <b>I have also made the decision to omit any <u>zero</u> value codes as it doesn't feed into the project objectives.</b> This means dropping <b><u>program_code</u></b> due to its extensive use of the zero value.
 
-Moving on and as suggested by fellow peers, I will subset column values as I move forward. First, let's see what we can learn from grouping columns and bring further breadth of knowledge to what can be of benefit.
+Moving on, I will subset the necessary column values as I move forward.
+
+MARKDOWN:
+## <center>Further EDA</center>
+
+MARKDOWN:
+### Notes to moving on with further EDA
+Let's see if we can get around the complexities and subset only the pertinent columns. As I have noted previously, columns sre_code, job_class_code, grant_code, and program_code do NOT provide us relevent information on expenses or expenditures by school or district. This was our intiial goal. I could have dropped those columns, but I will subset for now in case I decide to bring them back into the data frame.
+
+#Subset the district code, admin unit, school code, fund code, locaiton code, onject_source_code, and amount_cents
+COK12_subset = COK12_df2[['district_code', 'admin_unit', 'school_code', 'fund_code', 'location_code', 'object_source_code', 'amount_cents']]
+
+# Look at subset head
+COK12_subset.head()
+
+# Look at subset tail
+COK12_subset.tail()
+
+# Look at number of rows and columns
+COK12_subset.shape
+
+# Look at data frame summary data
+COK12_subset_dfs = DataFrameSummary(COK12_subset)
+
+# Look at the column stats within the Data Frame Summary
+COK12_subset_dfs.columns_stats
+
+# Convert the DataFrame Summary to image output
+DataFrame_to_image(COK12_subset.columns_stats, css)
+
+MARKDOWN:
+### Nice image of the subset Data Frame Summary
+![COK12_dfsSubset](Images/DFSoutSubset.png)
+
+# Look at describe and compare to Data Frame Summary Statistics code we previously ran
+COK12_SubDescribe = COK12_subset.describe()
+
+# Let's try to get an image of the describe dataframe for comparison purposes to the DataFrameSummary above
+DataFrame_to_image(COK12_SubDescribe, css)
+
+MARKDOWN:
+#### Again, very nice image of the subset Describe table
+![COK12_SubDescribe](Images/DescribeoutSubset.png)
+
+MARKDOWN:
+#### From our data frame summary above, the column stats show 200 unique district_code values. Let's see take a peak at what values we are dealing with below: 
+
+# Let's see how many unique district_code values are there:
+DC_unique = np.unique(COK12_subset['district_code'])
+DC_unique
+
+# This is the count of values in district_code column
+pd.value_counts(COK12_subset['district_code'].values,sort=True)
+
+MARKDOWN:
+### The column stats show 62 unique admin_unit values in the data frame summary. Let's see take a peak at what values we are dealing with below: 
+
+# Let's see how many unique admin_unit values are there:
+AU_unique = np.unique(COK12_subset['admin_unit'])
+AU_unique
+
+# This is the count of values in admin_unit column
+pd.value_counts(COK12_subset['admin_unit'].values,sort=True)
+
+MARKDOWN:
+### The column stats show 1,920 unique school_code values in the data frame summary. It may not be feasable to show all 1,920 unique values in our machine learning algortihm, but let's see take a look at what values we are dealing with below: 
+
+# Let's see how many unique school_code values are there:
+SC_unique = np.unique(COK12_subset['school_code'])
+SC_unique
+
+#This is the count of values in school_code column
+pd.value_counts(COK12_subset['school_code'].values,sort=True)
+
+MARKDOWN:
+The unique school_code values will not bring meaningful information to the project goals as there are too much dimensionality in the school_code column. This will not be helpful in our machine learning methodology.
+
+### The column stats show 34 unique fund_code values in the data frame summary. Let's see take a look at what values we are dealing with below: 
+
+# Let's see how many unique fund_code values are there:
+FC_unique = np.unique(COK12_subset['fund_code'])
+FC_unique
+
+# This is the count of values in fund_code column
+pd.value_counts(COK12_subset['fund_code'].values,sort=True)
+
+MARKDOWN:
+#### fund_code
+Not bad output for the fund_code values. This should be taken into consideration when applying machine learning algorithms. The fund_code column seems to have the least dimensionality with only 34 unique values. This is an indicator that it may be possible and best to apply one-hot endocing to the fund_code column.
+
+#### The column stats show 258 unique location_code values in the data frame summary. Let's see take a look at what values we are dealing with below: 
+
+# Let's see how many unique location_code values are there:
+LC_unique = np.unique(COK12_subset['location_code'])
+LC_unique
+
+# This is the count of values in location_code column
+pd.value_counts(COK12_subset['location_code'].values,sort=True)
+
+MARKDOWN:
+#### The column stats show 415 unique object_source_code values in the data frame summary. Let's see take a look at what values we are dealing with below: 
+
+# Let's see how many unique object_source_code values are there:
+OSC_unique = np.unique(COK12_subset['object_source_code'])
+OSC_unique
+
+# This is the count of values in object_source_code column
+pd.value_counts(COK12_subset['object_source_code'].values,sort=True)
+
+#Let's sort the dataframe by amount_cents and see the highest values spent, again
+ACsub_sort = COK12_subset.sort_values(by=['amount_cents'],ascending=False)
+ACsub_sort.head()
+
+#Let's see the amount_cents lowest values spent, again
+ACsub_sort.tail()
+
+MARKDOWN:
+Nothing has changed from the previous data frame to this subset data frame. Therefore, the subset values changed little or show little skew. Let's tyr a simple melt function for coding purposes....
+
+# Try to melt function to identify each object source code by other financial code columns
+longFCOSC = pd.melt(COK12_subset, 
+    id_vars=['fund_code', 'object_source_code'],
+    var_name='Account Code Elements', value_name='Unique ID')
+
+# Look at melt head
+longFCOSC.head()
+
+# Look at melt tail
+longFCOSC.tail()
+
+# Let's get a count on fund_code values in the longFCOSC data frame
+OCS_count = pd.value_counts(longFCOSC['fund_code'].values,sort=True)
+OCS_count.head()
+
+# Let's get a count on object_source_code values in the longFCOSC data frame
+OCS_count = pd.value_counts(longFCOSC['object_source_code'].values,sort=True)
+OCS_count.head()
+
+MARKDOWN:
+Once again, the melt data frame shows little variation from the COK12_df2 data frame prior to the subset. Let's try to create some basic visualizations.
+
+#Let's try a correlation matrix of the subset data frame
+corrmat = COK12_subset.corr()
+f, ax = plt.subplots(figsize=(12,10)) #setting some parameters of the plot to help readability
+sns.heatmap(corrmat, vmax = .8, square=True, annot=True)
+plt.savefig('sr_corr.png', dpi=300, bbox_inches='tight')
+
+MARKDOWN:
+### Correlations by Columns in Subset Data frame
+
+The top 5 highest correlations:
+* district_code and admin_unit show a correlation of 0.66.
+* fund_code and object_source_code show a correlation of 0.23.
+* district_code and location_code show a correlation of 0.17.
+* admin_unit and object_source_code show a correlation of 0.14.
+
+The top 5 lowest correlations:
+* program_code and object_source_code show a correlation of -0.35.
+* school_code and object_source_code show a correlation of -0.19.
+* school_code and location_code show a correlation of -0.15.
+* admin_unit and scool_code including fund_code and location_code show a correlation os -0.1.
+
+# Let's take a look at a pairplot of the highest correlated columns
+cols = ['district_code', 'admin_unit', 'location_code', 'fund_code', 'object_source_code']
+sns.pairplot(COK12_subset[cols], height = 2.5)
+plt.show()
+
+## <center>LOAD FFP Chart of Accounts for 2016-2017 to merge with the data:</center>
+
+# Load the Financial Policies and Procedures Chart of Accounts 2016-2017 into a dataframe but by District Code sheet
+COA1617_DC = pd.read_excel('Data/Chart of Accounts_1617.xlsx', sheet_name='District Code', header=0)
+
+# Look at upload head
+COA1617_DC.head()
+
+# Look at upload tail
+COA1617_DC.tail()
+
+# Subset data frame to rid unnecessary extra columns
+COA1617_DCsubset = COA1617_DC[['District', 'Description']]
+
+# Check head
+COA1617_DCsubset.head()
+
+# Rename the column to district_code
+COA1617_DCsubset = COA1617_DCsubset.rename(columns = {'District':'district_code', 'Description':'district'})
+
+# Check head and column rename
+COA1617_DCsubset.head()
+
+# Merge District Code Description with COK12_subset data frame
+COK12_subsetMerge = COK12_subset.merge(COA1617_DCsubset, on = 'district_code')
+
+# Check head
+COK12_subsetMerge.head()
+
+# Load the Financial Policies and Procedures Chart of Accounts 2016-2017 into a dataframe but by Admin Unit sheet
+COA1617_AU = pd.read_excel('Data/Chart of Accounts_1617.xlsx', sheet_name='Admin Code', header=0)
+
+# Look at upload head
+COA1617_AU.head()
+
+# Look at upload tail
+COA1617_AU.tail()
+
+# Subset data frame to rid unnecessary extra columns
+COA1617_AUsubset = COA1617_AU[['Administrative Unit', 'Description']]
+
+# Check head
+COA1617_AUsubset.head()
+
+# Rename the column to district_code
+COA1617_AUsubset = COA1617_AUsubset.rename(columns = {'Administrative Unit':'admin_unit', 'Description':'Admin_description'})
+
+# Check head and column rename
+COA1617_AUsubset.head()
+
+# Merge District Code Description with COK12_subset data frame
+COK12_subsetMerge = COK12_subset.merge(COA1617_AUsubset, on = 'admin_unit')
+
+# Check head
+COK12_subsetMerge.head()
+
+# Load the Financial Policies and Procedures Chart of Accounts 2016-2017 into a dataframe but by FUND sheet
+COA1617_FC = pd.read_excel('Data/Chart of Accounts_1617.xlsx', sheet_name='FUND', header=0)
+
+# Look at upload head
+COA1617_FC.head()
+
+# Look at upload tail
+COA1617_FC.tail()
+
+# Subset data frame to rid unnecessary extra columns
+COA1617_FCsubset = COA1617_FC[['Fund', 'Description']]
+
+# Check head
+COA1617_FCsubset.head()
+
+# Rename the column to district_code
+COA1617_FCsubset = COA1617_FCsubset.rename(columns = {'Fund':'fund_code'})
+
+# Check head and column rename
+COA1617_FCsubset.head()
+
+# Merge District Code Description with COK12_subset data frame
+COK12_subsetMerge = COK12_subset.merge(COA1617_FCsubset, on = 'fund_code')
+
+# Check head
+COK12_subsetMerge.head()
 
 
+
+
+
+
+
+
+
+
+
+
+cols = ['district_code', 'admin_unit', 'fund_code', 'object_source_code', 'location_code', 'program_code']
+
+
+
+
+
+
+
+
+
+
+
+# FUND 90 highest expenses: 1,783,590,000.00
+# Funny that Fund 90 must be removed for analysis????
+
+MARKDOWN:
 
 STOPPED COPY OF CODE INTO NOTEPAD HERE!!!!
 # STOPPED copy of code into notepad here!!!!
