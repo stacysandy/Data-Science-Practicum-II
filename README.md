@@ -1,5 +1,9 @@
 # Data-Science-Practicum-II
+
 A repository for the Regis University Data Science Practicum II project on Colorado K-12 Financial Transparency.
+
+*Formal Warning: This project became a research method approach with little visualizations. Due to the extenuating limitations of the data set and extensive subject matter knowledge to penetrate, the limitations were not evident until the disparity of codes and data began to reveal itself.
+ 
 
 ### Project Title: Colorado K-12 Financial Transparency – An Exploratory Data Science Comparison Across Schools
 
@@ -33,6 +37,15 @@ Add potential answers to research project
 Add Conclusion
 
 
+### Primary Question in this project:
+
+
+### What did I learn? What challenges did I encounter?
+
+# Conclusion
+
+
+### Where do we go from here?
 
 
 ### Link to my PowerPoint presentation on YouTube:  
