@@ -62,7 +62,6 @@ What really is transparent to us, our families, our children, our students, and 
 
 ### <u><b>What did I learn? What challenges did I encounter?</b></u>
 <br>
-<br>
 We looked at a number of visualizations and more than enough of my EDA markdown to write a research report. We compared my findings. I attempted to apply two Machine Learning Algorithms of Knn. However, with our challenges on the high categorical values, both machine learning algorithms proved challenging and a near unsuccess.
 <br>
 <br>
