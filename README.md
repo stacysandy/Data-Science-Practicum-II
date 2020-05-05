@@ -95,7 +95,7 @@ We must trust our schools fund raisers really do benefit the schools financially
 Again, as an attempt to end this project on a positive note. There is more to be done, more research and a lot more expenses and funding to bring to light. I am left with so many questions that only fuel my burning need of knowledge on the disparity of information and the want to reveal the true financial transparency on Colorado K-12 education. These are the last of my words here in my graduate degree requirements for the completion of my Master of Science in Data Science degree. Thank you for your patience.
 
 ### Link to my PowerPoint presentation on YouTube:  
-Place link here:
+https://youtu.be/wNFt7VJ9ZHk
 
 ### References and Sources
 About BOCES: https://www.coloradoboces.org/colorado-boces-association/about-boces/
